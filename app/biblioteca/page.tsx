@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LibraryGrid } from "@/components/library/library-grid";
+import { getLibraryItems } from "@/lib/library";
 
 export const metadata: Metadata = {
   title: "Biblioteca",
 };
 
-export default function LibraryPage() {
+// Reads from a synchronous SQLite driver, so render per request.
+export const instant = false;
+
+export default async function LibraryPage() {
+  // Synchronous SQLite reads must run per request, not during prerendering.
+  await connection();
+  const items = await getLibraryItems();
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -14,10 +24,15 @@ export default function LibraryPage() {
           Todo lo que viste, estás viendo o querés ver.
         </p>
       </header>
-      <EmptyState
-        title="Nada por aquí todavía"
-        description="Cuando agregues películas o series, van a aparecer en tu biblioteca."
-      />
+
+      {items.length === 0 ? (
+        <EmptyState
+          title="Nada por aquí todavía"
+          description="Cuando agregues películas o series, van a aparecer en tu biblioteca."
+        />
+      ) : (
+        <LibraryGrid items={items} />
+      )}
     </div>
   );
 }
