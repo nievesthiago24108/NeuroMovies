@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -22,6 +22,13 @@ export const metadata: Metadata = {
     template: "%s · Mi Catálogo",
   },
   description: "Seguimiento personal de películas y series, con datos de TMDB.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
