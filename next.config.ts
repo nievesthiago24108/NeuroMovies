@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Avoid bundling server code that touches filesystem at build time
+  serverExternalPackages: ["better-sqlite3", "drizzle-orm"],
 };
 
 export default nextConfig;

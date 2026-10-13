@@ -6,11 +6,22 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "@/db/schema";
 
-const DATABASE_FILE = process.env.DATABASE_FILE ?? "./data/app.db";
+const DATABASE_FILE = process.env.DATABASE_FILE ?? "data/app.db";
 
 function createDatabase() {
-  const resolvedPath = path.resolve(process.cwd(), DATABASE_FILE);
-  mkdirSync(path.dirname(resolvedPath), { recursive: true });
+  // Avoid tracing the whole cwd in production build analysis
+  const cwd = process.cwd();
+  const resolvedPath = path.isAbsolute(DATABASE_FILE)
+    ? DATABASE_FILE
+    : path.join(/*turbopackIgnore: true*/ cwd, DATABASE_FILE);
+  const dir = path.dirname(resolvedPath);
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      mkdirSync(dir, { recursive: true });
+    } catch {
+      // ignore
+    }
+  }
 
   const sqlite = new Database(resolvedPath);
   sqlite.pragma("journal_mode = WAL");
