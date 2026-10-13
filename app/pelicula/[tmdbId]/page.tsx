@@ -1,4 +1,9 @@
 import { notFound } from "next/navigation";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { libraryEntries, titles } from "@/db/schema";
+import { MovieDetail } from "@/components/movie/movie-detail";
+import { fetchMovieDraft } from "@/lib/tmdb/api";
 
 export const instant = false;
 
@@ -11,12 +16,30 @@ export default async function PeliculaPage({
   const id = Number(tmdbId);
   if (!Number.isFinite(id)) return notFound();
 
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold tracking-tight">Película (tmdbId: {id})</h1>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Ficha con estado, fecha vista, puntuación y nota (próximamente).
-      </p>
-    </div>
-  );
+  // Try to find existing title
+  let title = await db.query.titles.findFirst({
+    where: and(eq(titles.tmdbId, id), eq(titles.mediaType, "movie")),
+  });
+
+  // If not cached, fetch and cache (with minimal seasons/episodes not needed for movie)
+  if (!title) {
+    try {
+      const draft = await fetchMovieDraft(id);
+      const now = new Date();
+      const inserted = await db
+        .insert(titles)
+        .values({ ...draft, lastSyncedAt: now })
+        .returning();
+      title = inserted[0];
+    } catch (e) {
+      console.error(e);
+      return notFound();
+    }
+  }
+
+  const entry = await db.query.libraryEntries.findFirst({
+    where: eq(libraryEntries.titleId, title.id),
+  });
+
+  return <MovieDetail title={title} entry={entry ?? null} />;
 }

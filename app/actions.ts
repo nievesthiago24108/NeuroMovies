@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { episodes, libraryEntries, seasons, titles } from "@/db/schema";
 import { parseRating } from "@/lib/validate";
-import type { MediaType } from "@/db/schema";
+import type { LibraryStatus, MediaType } from "@/db/schema";
 import { fetchMovieDraft, fetchSeasonEpisodes, fetchTvBundle } from "@/lib/tmdb/api";
 
 /**
@@ -25,7 +25,9 @@ export async function setMovieRating(
   }
 
   const now = new Date();
-  const set = rating === null ? { rating: null } : { rating, status: "watched" as const, watchedAt: now };
+  const set = rating === null
+    ? { rating: null }
+    : { rating, status: "watched" as const, watchedAt: now };
 
   await db
     .insert(libraryEntries)
@@ -37,6 +39,66 @@ export async function setMovieRating(
 
   revalidatePath("/");
   revalidatePath("/biblioteca");
+  revalidatePath(`/pelicula/${title.tmdbId}`);
+  return { ok: true };
+}
+
+/** Update status for any title in library. */
+export async function updateLibraryStatus(
+  titleId: number,
+  status: LibraryStatus,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const existing = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
+  if (!existing) return { ok: false, error: "Título no encontrado." };
+  const now = new Date();
+  await db
+    .insert(libraryEntries)
+    .values({ titleId, status, addedAt: now })
+    .onConflictDoUpdate({
+      target: libraryEntries.titleId,
+      set: { status },
+    });
+  revalidatePath("/");
+  revalidatePath("/biblioteca");
+  if (existing.mediaType === "movie") revalidatePath(`/pelicula/${existing.tmdbId}`);
+  else revalidatePath(`/serie/${existing.tmdbId}`);
+  return { ok: true };
+}
+
+/** Update notes for a library entry. */
+export async function updateLibraryNotes(
+  titleId: number,
+  notes: string | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const existing = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
+  if (!existing) return { ok: false, error: "Título no encontrado." };
+  await db
+    .insert(libraryEntries)
+    .values({ titleId, addedAt: new Date(), notes: notes ?? null })
+    .onConflictDoUpdate({
+      target: libraryEntries.titleId,
+      set: { notes: notes ?? null },
+    });
+  if (existing.mediaType === "movie") revalidatePath(`/pelicula/${existing.tmdbId}`);
+  else revalidatePath(`/serie/${existing.tmdbId}`);
+  return { ok: true };
+}
+
+/** Update watched date (movie). */
+export async function setMovieWatchedAt(
+  titleId: number,
+  watchedAt: Date | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const title = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
+  if (!title || title.mediaType !== "movie") return { ok: false, error: "Película no encontrada." };
+  await db
+    .insert(libraryEntries)
+    .values({ titleId, addedAt: new Date(), watchedAt })
+    .onConflictDoUpdate({
+      target: libraryEntries.titleId,
+      set: { watchedAt },
+    });
+  revalidatePath(`/pelicula/${title.tmdbId}`);
   return { ok: true };
 }
 
@@ -49,21 +111,13 @@ async function ensureTitleForTmdb(tmdbId: number, mediaType: MediaType) {
   const now = new Date();
   if (mediaType === "movie") {
     const draft = await fetchMovieDraft(tmdbId);
-    const [inserted] = await db
-      .insert(titles)
-      .values({ ...draft, lastSyncedAt: now })
-      .returning();
+    const [inserted] = await db.insert(titles).values({ ...draft, lastSyncedAt: now }).returning();
     return inserted;
   }
 
-  // TV
   const bundle = await fetchTvBundle(tmdbId);
-  const [inserted] = await db
-    .insert(titles)
-    .values({ ...bundle.title, lastSyncedAt: now })
-    .returning();
+  const [inserted] = await db.insert(titles).values({ ...bundle.title, lastSyncedAt: now }).returning();
 
-  // Insert seasons
   for (const seasonDraft of bundle.seasons) {
     await db
       .insert(seasons)
@@ -79,7 +133,6 @@ async function ensureTitleForTmdb(tmdbId: number, mediaType: MediaType) {
       });
   }
 
-  // Fetch all season episodes (simple: up to reasonable count; TMDB usual small)
   const allSeasons = await db.query.seasons.findMany({
     where: eq(seasons.titleId, inserted.id),
   });
@@ -102,15 +155,12 @@ async function ensureTitleForTmdb(tmdbId: number, mediaType: MediaType) {
           });
       }
     } catch (err) {
-      // Ignore per-season failures to keep UX smooth; can retry later
       console.error(`Failed to fetch episodes for season ${s.seasonNumber}`, err);
     }
   }
-
   return inserted;
 }
 
-/** Add a title (movie or tv) to library with status wishlist or watching. */
 export async function addToLibrary(
   tmdbId: number,
   mediaType: MediaType,
