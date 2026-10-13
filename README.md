@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mi Catálogo
 
-## Getting Started
+Aplicación web personal de seguimiento de películas y series: lo que estás viendo,
+lo que querés ver y lo que ya viste, con puntuación de 1 a 5 estrellas por película
+y por episodio. El catálogo se obtiene automáticamente de la [TMDB API](https://developer.themoviedb.org/docs).
 
-First, run the development server:
+- **Stack**: Next.js (App Router) + TypeScript + Tailwind CSS
+- **Base de datos**: SQLite con Drizzle ORM (better-sqlite3) y migraciones versionadas
+- **Uso**: local, un solo usuario, sin login
+- **Idioma de la interfaz**: español
+
+## Requisitos
+
+- Node.js >= 20.9 (probado con Node 24)
+- Un token de API de TMDB (gratis)
+
+## Obtener el token de TMDB
+
+1. Creá una cuenta gratuita en [themoviedb.org/signup](https://www.themoviedb.org/signup).
+2. Andá a [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
+3. Presioná **Create** (o **API Key**) y completá los datos; no importa la URL de la app.
+4. En la sección **API Read Access Token** copiá el token (empieza con `eyJ...`).
+
+## Configuración
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Editá `.env` y pegá tu token:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+TMDB_ACCESS_TOKEN=eyJhbGciOi...
+TMDB_LANGUAGE=es-MX
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`TMDB_LANGUAGE` admite locales de TMDB como `es-MX`, `es-AR`, `es-ES` o `en-US`
+(por defecto `es-MX`). Si un título o sinopsis viene vacío en ese idioma, se usará
+`en-US` como respaldo.
 
-## Learn More
+## Instalación y ejecución
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install        # instala dependencias
+npm run db:migrate # crea y migra la base de datos (data/app.db)
+npm run dev        # desarrollo en http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Scripts disponibles:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Script               | Descripción                                             |
+| -------------------- | ------------------------------------------------------- |
+| `npm run dev`        | Servidor de desarrollo                                  |
+| `npm run build`      | Build de producción                                     |
+| `npm run start`      | Sirve el build de producción                            |
+| `npm run lint`       | ESLint                                                  |
+| `npm run typecheck`  | Verificación de tipos con TypeScript                    |
+| `npm test`           | Tests unitarios (Vitest)                                |
+| `npm run db:generate`| Genera una migración nueva a partir del schema          |
+| `npm run db:migrate` | Aplica las migraciones pendientes a `data/app.db`       |
 
-## Deploy on Vercel
+> La base de datos local (`data/`) y el archivo `.env` están en `.gitignore` y no
+> se suben al repositorio.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notas
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- El token de TMDB se usa **solo del lado del servidor** (server actions y route
+  handlers); nunca llega al navegador.
+- Las imágenes se sirven desde `image.tmdb.org` a través de `next/image`.
+- Este producto usa la TMDB API pero no está respaldado ni certificado por TMDB.
+
+## Licencia
+
+Uso personal. Los datos de títulos, imágenes y sinopsis pertenecen a sus
+respectivos autores y se usan según los términos de la [TMDB API](https://www.themoviedb.org/documentation/api/terms-of-use).
