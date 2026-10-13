@@ -63,3 +63,18 @@ export function shouldHideSpecials(): boolean {
 export function countsTowardProgress(seasonNumber: number): boolean {
   return seasonNumber !== SPECIAL_SEASON;
 }
+
+/**
+ * Whether a TMDB status means the show may still air new episodes
+ * (so finishing the aired ones keeps it as "watching" rather than "watched").
+ */
+export function isReturningSeries(status: string | null | undefined): boolean {
+  if (!status) return true;
+  const normalized = status.toLowerCase();
+  return (
+    normalized.includes("returning") ||
+    normalized.includes("in production") ||
+    normalized.includes("ongoing") ||
+    normalized.includes("airing")
+  );
+}

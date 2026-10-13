@@ -5,6 +5,7 @@ import {
   calculateProgress,
   countsTowardProgress,
   isAired,
+  isReturningSeries,
   shouldHideSpecials,
 } from "@/lib/progress";
 
@@ -97,5 +98,26 @@ describe("specials handling", () => {
     expect(countsTowardProgress(0)).toBe(false);
     expect(countsTowardProgress(1)).toBe(true);
     expect(countsTowardProgress(2)).toBe(true);
+  });
+});
+
+describe("isReturningSeries", () => {
+  it("is true for shows that may still air episodes", () => {
+    expect(isReturningSeries("Returning Series")).toBe(true);
+    expect(isReturningSeries("In Production")).toBe(true);
+    expect(isReturningSeries("Ongoing")).toBe(true);
+    expect(isReturningSeries("Currently Airing")).toBe(true);
+  });
+
+  it("is false for finished shows", () => {
+    expect(isReturningSeries("Ended")).toBe(false);
+    expect(isReturningSeries("Canceled")).toBe(false);
+    expect(isReturningSeries("Released")).toBe(false);
+  });
+
+  it("defaults to true when the status is unknown", () => {
+    expect(isReturningSeries(null)).toBe(true);
+    expect(isReturningSeries(undefined)).toBe(true);
+    expect(isReturningSeries("")).toBe(true);
   });
 });

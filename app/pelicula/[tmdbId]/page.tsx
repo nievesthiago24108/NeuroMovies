@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { connection } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { libraryEntries, titles } from "@/db/schema";
+import { libraryEntries } from "@/db/schema";
 import { MovieDetail } from "@/components/movie/movie-detail";
-import { fetchMovieDraft } from "@/lib/tmdb/api";
+import { ensureTitle, refreshTitleIfStale } from "@/lib/library";
 
 export const instant = false;
 
@@ -16,30 +17,24 @@ export default async function PeliculaPage({
   const id = Number(tmdbId);
   if (!Number.isFinite(id)) return notFound();
 
-  // Try to find existing title
-  let title = await db.query.titles.findFirst({
-    where: and(eq(titles.tmdbId, id), eq(titles.mediaType, "movie")),
-  });
+  // Data comes from a synchronous SQLite driver and the current time, so render
+  // this route per request instead of during prerendering.
+  await connection();
 
-  // If not cached, fetch and cache (with minimal seasons/episodes not needed for movie)
-  if (!title) {
-    try {
-      const draft = await fetchMovieDraft(id);
-      const now = new Date();
-      const inserted = await db
-        .insert(titles)
-        .values({ ...draft, lastSyncedAt: now })
-        .returning();
-      title = inserted[0];
-    } catch (e) {
-      console.error(e);
-      return notFound();
-    }
+  let title;
+  try {
+    title = await ensureTitle(id, "movie");
+  } catch (error) {
+    console.error(error);
+    return notFound();
   }
 
   const entry = await db.query.libraryEntries.findFirst({
     where: eq(libraryEntries.titleId, title.id),
   });
+
+  // Resync from TMDB when the cached data is past its 30-day window.
+  title = await refreshTitleIfStale(title, entry?.status);
 
   return <MovieDetail title={title} entry={entry ?? null} />;
 }
