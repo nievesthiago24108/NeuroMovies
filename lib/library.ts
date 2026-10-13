@@ -90,8 +90,16 @@ async function storedEpisodeCounts(titleId: number): Promise<Map<number, number>
   return new Map(rows.map((row) => [row.seasonId, Number(row.total)]));
 }
 
-/** Fetch and persist the TV seasons/episodes whose episode count changed. */
-async function syncTvChildren(titleId: number, tvId: number, drafts: SeasonDraft[]): Promise<void> {
+/**
+ * Fetch and persist the TV seasons/episodes whose episode count changed.
+ * Returns how many seasons failed to sync, so callers can retry later instead
+ * of treating a partial sync as complete.
+ */
+async function syncTvChildren(
+  titleId: number,
+  tvId: number,
+  drafts: SeasonDraft[],
+): Promise<number> {
   await upsertSeasons(titleId, drafts);
   const stored = await db.query.seasons.findMany({ where: eq(seasons.titleId, titleId) });
   const counts = await storedEpisodeCounts(titleId);
@@ -103,13 +111,16 @@ async function syncTvChildren(titleId: number, tvId: number, drafts: SeasonDraft
     return (counts.get(season.id) ?? 0) !== expectedCount;
   });
 
+  let failed = 0;
   await Promise.all(
     targets.map((season) =>
       upsertSeasonEpisodes(titleId, season, tvId).catch((error) => {
         console.error(`Failed to sync episodes for season ${season.seasonNumber}`, error);
+        failed += 1;
       }),
     ),
   );
+  return failed;
 }
 
 /** Fetch a title from TMDB and persist it (with its children for TV). */
@@ -132,7 +143,12 @@ export async function cacheTitleFromTmdb(
     .insert(titles)
     .values({ ...bundle.title, lastSyncedAt: now })
     .returning();
-  await syncTvChildren(inserted.id, tmdbId, bundle.seasons);
+  const failed = await syncTvChildren(inserted.id, tmdbId, bundle.seasons);
+  if (failed > 0) {
+    // Keep the title marked as unsynced so a later refresh fills the gaps.
+    await db.update(titles).set({ lastSyncedAt: null }).where(eq(titles.id, inserted.id));
+    return { ...inserted, lastSyncedAt: null };
+  }
   return inserted;
 }
 
@@ -177,12 +193,89 @@ export async function refreshTitleIfStale(
       .set({ ...bundle.title, lastSyncedAt: now })
       .where(eq(titles.id, title.id))
       .returning();
-    await syncTvChildren(title.id, title.tmdbId, bundle.seasons);
+    const failed = await syncTvChildren(title.id, title.tmdbId, bundle.seasons);
+    if (failed > 0) {
+      // Some seasons are still missing; retry on the next view.
+      await db.update(titles).set({ lastSyncedAt: null }).where(eq(titles.id, title.id));
+      return { ...updated, lastSyncedAt: null };
+    }
     return updated;
   } catch (error) {
     console.error(`Failed to refresh title ${title.tmdbId}`, error);
     return title;
   }
+}
+
+async function episodeCountFor(titleId: number): Promise<number> {
+  const [row] = await db
+    .select({ total: count() })
+    .from(episodes)
+    .where(eq(episodes.titleId, titleId));
+  return Number(row?.total ?? 0);
+}
+
+export interface SyncAllSeriesResult {
+  totalSeries: number;
+  syncedSeries: number;
+  failedSeries: number;
+  newEpisodes: number;
+  /** TMDB ids of the series that synced, for cache revalidation. */
+  tmdbIds: number[];
+}
+
+/**
+ * Fetch the latest seasons/episodes for every TV series known to the app,
+ * regardless of the refresh window. Covers library entries and titles that
+ * were only cached by browsing, so partially synced series get repaired.
+ * Backs the explicit "sync all" action. A failing series is counted and
+ * skipped without aborting the batch.
+ */
+export async function syncAllLibrarySeries(): Promise<SyncAllSeriesResult> {
+  const rows = await db.select({ title: titles }).from(titles).where(eq(titles.mediaType, "tv"));
+
+  const result: SyncAllSeriesResult = {
+    totalSeries: rows.length,
+    syncedSeries: 0,
+    failedSeries: 0,
+    newEpisodes: 0,
+    tmdbIds: [],
+  };
+
+  for (const { title } of rows) {
+    const before = await episodeCountFor(title.id);
+    try {
+      const bundle = await fetchTvBundle(title.tmdbId);
+      await db
+        .update(titles)
+        .set({ ...bundle.title, lastSyncedAt: new Date() })
+        .where(eq(titles.id, title.id));
+      const failed = await syncTvChildren(title.id, title.tmdbId, bundle.seasons);
+      const after = await episodeCountFor(title.id);
+      result.newEpisodes += Math.max(0, after - before);
+      if (failed > 0) {
+        // Partial sync: leave the title unsynced so a later pass retries it.
+        await db.update(titles).set({ lastSyncedAt: null }).where(eq(titles.id, title.id));
+        result.failedSeries += 1;
+      } else {
+        result.syncedSeries += 1;
+      }
+      result.tmdbIds.push(title.tmdbId);
+    } catch (error) {
+      console.error(`Failed to sync series ${title.tmdbId}`, error);
+      result.failedSeries += 1;
+    }
+  }
+
+  return result;
+}
+
+/** Number of TV series known to the app (library entries plus cached ones). */
+export async function countTvTitles(): Promise<number> {
+  const [row] = await db
+    .select({ total: count() })
+    .from(titles)
+    .where(eq(titles.mediaType, "tv"));
+  return Number(row?.total ?? 0);
 }
 
 /**

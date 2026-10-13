@@ -6,8 +6,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { episodeProgress, episodes, libraryEntries, titles } from "@/db/schema";
 import { parseRating } from "@/lib/validate";
 import type { LibraryStatus, MediaType } from "@/db/schema";
-import { ensureTitle } from "@/lib/library";
+import { ensureTitle, syncAllLibrarySeries } from "@/lib/library";
 import { isReturningSeries } from "@/lib/progress";
+import { hasTmdbToken } from "@/lib/tmdb/client";
 
 export async function setMovieRating(
   titleId: number,
@@ -99,6 +100,37 @@ export async function addToLibrary(
   }
 }
 
+
+export type SyncAllSeriesResponse =
+  | {
+      ok: true;
+      totalSeries: number;
+      syncedSeries: number;
+      failedSeries: number;
+      newEpisodes: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Force a full seasons/episodes sync for every TV series known to the app.
+ * Used by the explicit "Sincronizar todo" button.
+ */
+export async function syncAllSeries(): Promise<SyncAllSeriesResponse> {
+  if (!hasTmdbToken()) {
+    return { ok: false, error: "Falta configurar TMDB_ACCESS_TOKEN." };
+  }
+  const result = await syncAllLibrarySeries();
+  revalidatePath("/");
+  revalidatePath("/biblioteca");
+  for (const tmdbId of result.tmdbIds) revalidatePath(`/serie/${tmdbId}`);
+  return {
+    ok: true,
+    totalSeries: result.totalSeries,
+    syncedSeries: result.syncedSeries,
+    failedSeries: result.failedSeries,
+    newEpisodes: result.newEpisodes,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Episode progress and series status transitions
