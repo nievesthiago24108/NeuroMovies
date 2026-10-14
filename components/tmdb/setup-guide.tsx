@@ -29,18 +29,18 @@ export function SetupGuide() {
       <ol className="flex flex-col gap-3">
         {steps.map((step) => (
           <li key={step.title} className="flex gap-3">
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
               {step.title.split(".")[0]}
             </span>
             <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{step.title}</p>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">{step.body}</p>
+              <p className="text-sm font-medium">{step.title}</p>
+              <p className="text-sm text-muted">{step.body}</p>
               {step.href ? (
                 <Link
                   href={step.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400"
+                  className="text-sm font-medium text-accent hover:underline"
                 >
                   {step.href.replace("https://www.", "")}
                 </Link>
@@ -49,10 +49,10 @@ export function SetupGuide() {
           </li>
         ))}
       </ol>
-      <p className="rounded-lg bg-zinc-100 p-3 text-xs text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+      <p className="rounded-card border border-line bg-surface-2 p-3 text-xs text-muted">
         El token se usa <strong>solo del lado del servidor</strong> y nunca llega al
         navegador. Si todavía no aparece nada, revisá que el archivo{" "}
-        <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-800">.env</code> esté en la raíz
+        <code className="rounded bg-surface px-1">.env</code> esté en la raíz
         del proyecto.
       </p>
     </div>

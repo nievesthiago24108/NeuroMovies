@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { LoginForm } from "@/app/login/login-form";
 import { safeNextPath } from "@/lib/auth";
 
@@ -19,9 +20,17 @@ export default async function LoginPage({
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6 py-10">
-      <header className="flex flex-col gap-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">NeuroMovies</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <header className="flex flex-col items-center gap-2 text-center">
+        <Image
+          src="/images/logo-mark.png"
+          alt=""
+          width={48}
+          height={48}
+          priority
+          className="h-12 w-12 invert dark:invert-0"
+        />
+        <h1 className="font-display text-3xl font-semibold tracking-tight">NeuroMovies</h1>
+        <p className="text-sm text-muted">
           Ingresá la contraseña para continuar.
         </p>
       </header>

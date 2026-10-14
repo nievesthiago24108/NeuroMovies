@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={toast.id}
             role="status"
-            className="pointer-events-auto max-w-sm rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+            className="pointer-events-auto max-w-sm rounded-full border border-line bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg"
           >
             {toast.message}
           </div>

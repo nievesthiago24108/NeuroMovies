@@ -50,16 +50,33 @@ export default function SearchPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">Buscar</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Buscar</h1>
+        <p className="text-sm text-muted">
           Buscá películas y series para agregar a tu catálogo.
         </p>
       </header>
       <SearchBox value={query} onChange={setQuery} onSubmit={search} />
       {error ? (
-        <div className="text-sm text-amber-600 dark:text-amber-400">{error}</div>
+        <div className="text-sm text-red-500 dark:text-red-400">{error}</div>
       ) : null}
-      <SearchResults results={results} loading={loading && query.trim().length >= 2} />
+      {query.trim().length >= 2 ? (
+        <SearchResults results={results} loading={loading} />
+      ) : (
+        <div className="flex flex-col items-center gap-4 rounded-card border border-dashed border-line bg-surface/50 px-6 py-12 text-center">
+          {/* Decorative SVG art: plain <img> avoids the image optimizer for vectors. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/projector.svg"
+            alt="Ilustración de un proyector de cine encendido"
+            width={220}
+            height={145}
+            className="opacity-85"
+          />
+          <p className="text-sm text-muted">
+            Escribí al menos 2 letras para buscar películas y series.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

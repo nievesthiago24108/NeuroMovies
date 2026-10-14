@@ -15,6 +15,9 @@ const STATUS_LABEL: Record<string, string> = {
   abandoned: "Abandonada",
 };
 
+const fieldClass =
+  "h-9 rounded-control border border-line bg-surface px-2 text-sm text-foreground";
+
 export function MovieDetail({ title, entry }: { title: Title; entry: LibraryEntry | null }) {
   const poster = posterUrl(title.posterPath, "w780");
   const backdrop = backdropUrl(title.backdropPath, "w780");
@@ -58,42 +61,45 @@ export function MovieDetail({ title, entry }: { title: Title; entry: LibraryEntr
   return (
     <div className="flex flex-col gap-8">
       {backdrop ? (
-        <div className="relative -mx-4 h-48 overflow-hidden rounded-b-xl sm:-mx-6 sm:h-64 md:h-72">
-          <Image src={backdrop} alt="" fill className="object-cover opacity-80" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent" />
+        <div className="grain relative -mx-4 h-56 overflow-hidden sm:-mx-6 sm:h-72 md:h-80">
+          <Image src={backdrop} alt="" fill sizes="100vw" className="object-cover opacity-70" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
         </div>
       ) : null}
       <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-        <div className="relative mx-auto h-64 w-44 shrink-0 overflow-hidden rounded-lg shadow md:mx-0 md:h-80 md:w-56">
+        <div className="relative mx-auto aspect-[2/3] w-44 shrink-0 overflow-hidden rounded-card border border-line bg-surface-2 md:mx-0 md:w-56">
           {poster ? (
-            <Image src={poster} alt={title.title} fill className="object-cover" priority />
+            <Image src={poster} alt={title.title} fill sizes="224px" className="object-cover" priority />
           ) : (
-            <div className="flex h-full items-center justify-center bg-zinc-200 text-sm text-zinc-500">Sin póster</div>
+            <div className="flex h-full items-center justify-center text-sm text-muted">Sin póster</div>
           )}
         </div>
         <div className="flex flex-1 flex-col gap-4">
-          <header className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold tracking-tight">
+          <header className="flex flex-col gap-2">
+            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               {title.title}
-              {year ? ` (${year})` : ""}
+              {year ? <span className="text-muted"> ({year})</span> : null}
             </h1>
             {title.originalTitle && title.originalTitle !== title.title ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">{title.originalTitle}</p>
+              <p className="text-sm text-muted">{title.originalTitle}</p>
             ) : null}
+            <div className="perf" aria-hidden="true" />
           </header>
-          {title.overview ? <p className="max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">{title.overview}</p> : null}
+          {title.overview ? (
+            <p className="max-w-2xl text-sm leading-relaxed text-muted">{title.overview}</p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wide text-zinc-400">Puntuación</span>
+              <span className="text-xs uppercase tracking-wide text-muted">Puntuación</span>
               <StarRating value={entry?.rating ?? null} onChange={handleRatingChange} size="lg" />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wide text-zinc-400">Estado</span>
+              <span className="text-xs uppercase tracking-wide text-muted">Estado</span>
               <select
                 value={entry?.status ?? "wishlist"}
                 onChange={handleStatusChange}
                 disabled={pendingStatus}
-                className="h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className={fieldClass}
               >
                 {Object.entries(STATUS_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -101,30 +107,33 @@ export function MovieDetail({ title, entry }: { title: Title; entry: LibraryEntr
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wide text-zinc-400">Fecha en que la vi</span>
+              <span className="text-xs uppercase tracking-wide text-muted">Fecha en que la vi</span>
               <input
                 type="date"
                 value={watchedAtStr}
                 onChange={handleDateChange}
                 disabled={pendingDate}
-                className="h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className={fieldClass}
               />
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-wide text-zinc-400">Nota personal (opcional)</span>
+            <label htmlFor="nota" className="text-xs uppercase tracking-wide text-muted">
+              Nota personal (opcional)
+            </label>
             <textarea
+              id="nota"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
-              className="w-full max-w-2xl rounded-md border border-zinc-300 bg-white p-2 text-sm outline-none focus:border-teal-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className="w-full max-w-2xl rounded-control border border-line bg-surface p-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
             <div>
               <button
                 type="button"
                 onClick={handleNotesSave}
                 disabled={pendingNotes}
-                className="h-9 rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-70 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="h-9 rounded-control bg-accent px-3 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-strong disabled:opacity-70"
               >
                 {pendingNotes ? "Guardando..." : "Guardar nota"}
               </button>

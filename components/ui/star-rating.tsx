@@ -26,8 +26,8 @@ function StarIcon({ filled, size }: { filled: boolean; size: Size }) {
       aria-hidden="true"
       className={`${sizeClasses[size]} transition-colors ${
         filled
-          ? "fill-amber-400 text-amber-400"
-          : "fill-transparent text-zinc-400 dark:text-zinc-500"
+          ? "fill-rating text-rating"
+          : "fill-transparent text-muted"
       }`}
     >
       <path
@@ -143,7 +143,7 @@ export function StarRating({
           type="button"
           aria-label="Quitar puntuación"
           title="Quitar puntuación"
-          className={`${sizePadding[size]} -ml-1 rounded-full text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300`}
+          className={`${sizePadding[size]} -ml-1 rounded-full text-muted transition-colors hover:text-foreground`}
           onClick={() => onChange(null)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" className={`${sizeClasses[size]} ${size === "sm" ? "h-4 w-4" : ""}`}>

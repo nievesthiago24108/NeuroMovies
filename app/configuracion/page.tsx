@@ -19,8 +19,8 @@ export default async function SetupPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Configuración</h1>
+        <p className="text-sm text-muted">
           Para usar la app necesitás un token de la TMDB API y una base de datos
           PostgreSQL.
         </p>
@@ -54,10 +54,10 @@ function StatusRow({
   return (
     <div
       className={
-        "flex items-center gap-2 rounded-lg border p-3 text-sm " +
+        "flex items-center gap-2 rounded-card border p-3 text-sm " +
         (ok
-          ? "border-teal-600/40 bg-teal-600/10 text-teal-700 dark:text-teal-300"
-          : "border-amber-600/40 bg-amber-600/10 text-amber-700 dark:text-amber-300")
+          ? "border-accent/40 bg-accent/10 text-accent"
+          : "border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400")
       }
     >
       <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
@@ -69,7 +69,7 @@ function StatusRow({
 function SetupGuidePanel() {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">Cómo configurarlo</h2>
+      <h2 className="font-display text-xl font-semibold tracking-tight">Cómo configurarlo</h2>
       <SetupGuide />
     </section>
   );

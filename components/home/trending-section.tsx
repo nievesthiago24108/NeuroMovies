@@ -45,7 +45,7 @@ export function TrendingSection() {
 
   if (state.status === "missing-token") {
     return (
-      <p className="text-sm text-amber-600 dark:text-amber-400">
+      <p className="text-sm text-amber-600 dark:text-orange-400">
         Falta configurar <code>TMDB_ACCESS_TOKEN</code>.{" "}
         <Link href="/configuracion" className="underline">
           Ver pasos de configuración
@@ -57,7 +57,7 @@ export function TrendingSection() {
 
   if (state.status === "error") {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-muted">
         No se pudieron cargar las tendencias de TMDB. Intentá más tarde.
       </p>
     );
@@ -65,7 +65,7 @@ export function TrendingSection() {
 
   if (state.results.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-muted">
         No hay tendencias para mostrar ahora mismo.
       </p>
     );

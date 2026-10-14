@@ -61,9 +61,9 @@ export function WishlistRoulette({ items }: { items: LibraryItem[] }) {
   return (
     <section
       aria-label="Ruleta para elegir una película"
-      className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center"
+      className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4 sm:flex-row sm:items-center"
     >
-      <div className="relative h-36 w-24 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
+      <div className="relative h-36 w-24 shrink-0 overflow-hidden rounded-control bg-surface-2">
         {poster ? (
           <Image
             src={poster}
@@ -73,30 +73,30 @@ export function WishlistRoulette({ items }: { items: LibraryItem[] }) {
             className={`object-cover ${phase === "spinning" ? "opacity-75" : ""}`}
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-1 text-center text-[11px] text-zinc-400">
+          <div className="flex h-full items-center justify-center px-1 text-center text-[11px] text-muted">
             Sin póster
           </div>
         )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2">
-        <h2 className="text-sm font-semibold">¿No sabés qué ver?</h2>
+        <h2 className="font-display text-base font-semibold tracking-tight">¿No sabés qué ver?</h2>
 
         <div aria-live="polite" className="min-h-[3.25rem]">
           {chosen ? (
             <>
-              <p className="text-lg font-bold leading-tight">
+              <p className="font-display text-lg font-semibold leading-tight">
                 {chosen.title}
                 {chosen.year ? (
-                  <span className="font-normal text-zinc-400"> ({chosen.year})</span>
+                  <span className="font-normal text-muted"> ({chosen.year})</span>
                 ) : null}
               </p>
-              <p className="text-sm text-zinc-500">La ruleta eligió esta. ¡A verla!</p>
+              <p className="text-sm text-muted">La ruleta eligió esta. ¡A verla!</p>
             </>
           ) : phase === "spinning" ? (
-            <p className="text-sm text-zinc-500">Girando…</p>
+            <p className="text-sm text-muted">Girando…</p>
           ) : (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted">
               Dejá que la ruleta elija una película de tu lista &ldquo;Quiero ver&rdquo;.
             </p>
           )}
@@ -107,7 +107,7 @@ export function WishlistRoulette({ items }: { items: LibraryItem[] }) {
             type="button"
             onClick={spin}
             disabled={phase === "spinning"}
-            className="h-9 rounded-md bg-teal-600 px-3 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-70"
+            className="h-9 rounded-control bg-accent px-3 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-strong disabled:opacity-70"
           >
             {phase === "spinning"
               ? "Girando…"
@@ -118,7 +118,7 @@ export function WishlistRoulette({ items }: { items: LibraryItem[] }) {
           {chosen ? (
             <Link
               href={`/pelicula/${chosen.tmdbId}`}
-              className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className="inline-flex h-9 items-center rounded-control border border-line px-3 text-sm font-medium transition-colors hover:bg-surface-2"
             >
               Ver ficha
             </Link>

@@ -27,12 +27,12 @@ export function SearchBox({
           onChange(e.target.value);
         }}
         placeholder="Buscar películas o series (en español)..."
-        className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-4 text-base shadow-sm outline-none ring-teal-500 transition focus:border-teal-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900"
+        className="h-11 w-full rounded-control border border-line bg-surface px-4 text-base shadow-sm outline-none ring-accent/30 transition focus:border-accent focus:ring-2"
         aria-label="Buscar"
       />
       <button
         type="submit"
-        className="h-11 shrink-0 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-70 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="h-11 shrink-0 rounded-control bg-accent px-4 text-sm font-medium text-accent-ink transition hover:bg-accent-strong disabled:opacity-70"
         disabled={local.trim().length < 2}
       >
         Buscar

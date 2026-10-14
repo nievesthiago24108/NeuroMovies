@@ -17,23 +17,21 @@ export function SearchResults({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 md:grid-cols-6">
         {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+          <div key={i} className="aspect-[2/3] animate-pulse rounded-card bg-surface-2" />
         ))}
       </div>
     );
   }
   if (results.length === 0) {
     return (
-      <div className="text-sm text-zinc-500 dark:text-zinc-400">
-        Sin resultados. Probá con otro término.
-      </div>
+      <p className="text-sm text-muted">Sin resultados. Probá con otro término.</p>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 md:grid-cols-6">
       {results.map((r) => (
         <SearchCard key={`${r.mediaType}-${r.tmdbId}`} entry={r} />
       ))}
@@ -70,35 +68,40 @@ function SearchCard({ entry }: { entry: SearchEntry }) {
 
   return (
     <article className="flex flex-col gap-2">
-      <Link href={href} className="relative block aspect-[2/3] overflow-hidden rounded-lg shadow">
+      <Link
+        href={href}
+        className="group relative block aspect-[2/3] overflow-hidden rounded-card border border-line bg-surface-2"
+      >
         {poster ? (
           <Image
             src={poster}
             alt={entry.title}
             fill
             sizes="(min-width: 768px) 16vw, (min-width: 640px) 25vw, 50vw"
-            className="object-cover transition-transform hover:scale-105"
+            className="object-cover transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-zinc-200 text-xs text-zinc-500 dark:bg-zinc-800">
+          <div className="flex h-full w-full items-center justify-center text-xs text-muted">
             Sin póster
           </div>
         )}
       </Link>
       <div className="flex flex-col gap-1">
-        <Link href={href} className="line-clamp-2 text-sm font-medium hover:underline">
+        <Link href={href} className="line-clamp-2 text-sm font-medium transition-colors hover:text-accent">
           {entry.title}
           {year ? ` (${year})` : ""}
         </Link>
-        <p className="text-xs uppercase tracking-wide text-zinc-400">{entry.mediaType === "movie" ? "Película" : "Serie"}</p>
-        <p className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">{entry.overview}</p>
+        <p className="text-[11px] uppercase tracking-wide text-muted">
+          {entry.mediaType === "movie" ? "Película" : "Serie"}
+        </p>
+        <p className="line-clamp-2 text-xs text-muted">{entry.overview}</p>
         <div className="mt-1 flex flex-wrap gap-1">
           <button
             type="button"
             onClick={() => handleAdd("wishlist")}
             disabled={pending !== null}
-            className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium transition hover:bg-zinc-200 disabled:opacity-70 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            className="rounded-control border border-line bg-surface-2 px-2 py-1 text-xs font-medium transition hover:border-accent/50 hover:text-accent disabled:opacity-70"
           >
             {pending === "wishlist" ? "Agregando..." : "Quiero ver"}
           </button>
@@ -106,7 +109,7 @@ function SearchCard({ entry }: { entry: SearchEntry }) {
             type="button"
             onClick={() => handleAdd("watching")}
             disabled={pending !== null}
-            className="rounded-full bg-teal-600/90 px-2 py-1 text-xs font-medium text-white transition hover:bg-teal-600 disabled:opacity-70 dark:bg-teal-500/90 dark:text-zinc-950 dark:hover:bg-teal-500"
+            className="rounded-control bg-accent px-2 py-1 text-xs font-medium text-accent-ink transition hover:bg-accent-strong disabled:opacity-70"
           >
             {pending === "watching" ? "Agregando..." : "Viendo"}
           </button>

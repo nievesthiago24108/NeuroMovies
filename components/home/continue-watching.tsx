@@ -26,25 +26,25 @@ export function ContinueWatching({ items }: { items: ContinueWatchingItem[] }) {
         return (
           <li
             key={item.titleId}
-            className="flex items-center gap-3 rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-800"
+            className="flex items-center gap-3 rounded-card border border-line bg-surface p-2.5"
           >
             <Link
               href={`/serie/${item.tmdbId}`}
-              className="relative h-20 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800"
+              className="relative h-20 w-14 shrink-0 overflow-hidden rounded-control bg-surface-2"
             >
               {poster ? (
                 <Image src={poster} alt={item.title} fill sizes="56px" className="object-cover" />
               ) : null}
             </Link>
             <div className="flex flex-1 flex-col gap-0.5">
-              <Link href={`/serie/${item.tmdbId}`} className="text-sm font-semibold hover:underline">
+              <Link href={`/serie/${item.tmdbId}`} className="text-sm font-semibold transition-colors hover:text-accent">
                 {item.title}
               </Link>
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-muted">
                 T{item.seasonNumber} · E{item.episodeNumber}
                 {item.episodeName ? ` — ${item.episodeName}` : ""}
               </span>
-              <span className="text-[11px] text-zinc-400">
+              <span className="text-[11px] text-muted/80">
                 {item.watched} / {item.aired} episodios vistos
               </span>
             </div>
@@ -52,7 +52,7 @@ export function ContinueWatching({ items }: { items: ContinueWatchingItem[] }) {
               type="button"
               onClick={() => handleWatched(item)}
               disabled={pending === item.episodeId}
-              className="h-9 shrink-0 rounded-md bg-teal-600 px-3 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+              className="h-9 shrink-0 rounded-control bg-accent px-3 text-xs font-medium text-accent-ink transition-colors hover:bg-accent-strong disabled:opacity-70"
             >
               {pending === item.episodeId ? "Guardando..." : "Marcar visto"}
             </button>

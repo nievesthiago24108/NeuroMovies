@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,9 +22,14 @@ function Section({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
+          {title}
+        </h2>
         {action ? (
-          <Link href={action.href} className="text-xs font-medium text-teal-600 hover:underline">
+          <Link
+            href={action.href}
+            className="text-xs font-medium text-accent underline-offset-4 hover:underline"
+          >
             {action.label}
           </Link>
         ) : null}
@@ -48,12 +54,37 @@ export default async function Home() {
     .slice(0, 6);
 
   return (
-    <div className="flex flex-col gap-10">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">NeuroMovies</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Tu seguimiento personal de películas y series.
-        </p>
+    <div className="flex flex-col gap-12">
+      <header className="relative overflow-hidden rounded-card border border-line">
+        {/* Decorative: cinematic backdrop for the hero. */}
+        <div className="grain absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/cinema-hall.svg"
+            alt="Sala de cine a oscuras, con butacas y haces de luz del proyector"
+            width={1600}
+            height={560}
+            className="pointer-events-none h-full w-full object-cover opacity-60"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
+        <div className="relative flex flex-col gap-3 px-6 py-10 sm:px-10 sm:py-14">
+          <Image
+            src="/images/logo-mark.png"
+            alt=""
+            width={44}
+            height={44}
+            priority
+            className="h-11 w-11 invert dark:invert-0"
+          />
+          <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            NeuroMovies
+          </h1>
+          <p className="max-w-md text-sm text-muted">
+            Tu seguimiento personal de películas y series.
+          </p>
+        </div>
+        <div className="perf relative" aria-hidden="true" />
       </header>
 
       {items.length === 0 ? (

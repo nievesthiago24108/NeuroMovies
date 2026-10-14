@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function TMDBAttribution() {
   return (
-    <div className="flex flex-col gap-1.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+    <div className="flex flex-col gap-1.5 text-xs leading-relaxed text-muted">
       <Link
         href="https://www.themoviedb.org"
         target="_blank"

@@ -41,7 +41,7 @@ export function SyncAllButton() {
       type="button"
       onClick={handleSync}
       disabled={pending}
-      className="inline-flex h-9 items-center gap-2 rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+      className="inline-flex h-9 items-center gap-2 rounded-control border border-line px-3 text-sm font-medium transition-colors hover:border-accent/50 hover:text-accent disabled:opacity-60"
     >
       {pending ? (
         <>
