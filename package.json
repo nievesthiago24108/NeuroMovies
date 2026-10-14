@@ -14,11 +14,14 @@
     "db:import-sqlite": "node scripts/migrate-sqlite-to-pg.mjs"
   },
   "dependencies": {
+    "@neon/config": "^1.9.1",
+    "@neon/env": "^1.6.2",
+    "@vercel/functions": "^3.10.1",
     "drizzle-orm": "^0.45.4",
     "geist": "^1.7.2",
     "next": "16.4.0",
     "next-themes": "^0.4.6",
-    "postgres": "^3.4.9",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1"
@@ -26,6 +29,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.11",

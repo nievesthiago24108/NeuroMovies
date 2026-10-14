@@ -17,8 +17,8 @@ export default async function SeriePage({
   const id = Number(tmdbId);
   if (!Number.isFinite(id)) return notFound();
 
-  // Data comes from a synchronous SQLite driver and the current time, so render
-  // this route per request instead of during prerendering.
+  // Data comes from PostgreSQL and the current time, so render this route per
+  // request instead of during prerendering.
   await connection();
 
   let title;

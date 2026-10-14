@@ -12,8 +12,14 @@ export default defineConfig({
   schema: "./db/schema.ts",
   out: "./db/migrations",
   dbCredentials: {
-    // DATABASE_URL (generic) or POSTGRES_URL (Vercel/Neon integration).
-    url: process.env.DATABASE_URL || process.env.POSTGRES_URL || "",
+    // Migrations run against the direct (unpooled) connection: the transaction
+    // pooler isn't meant to carry DDL/session state. Falls back to the pooled
+    // URL and then to the Vercel/Neon integration name.
+    url:
+      process.env.DATABASE_URL_UNPOOLED ||
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      "",
   },
   strict: true,
   verbose: true,

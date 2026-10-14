@@ -1,7 +1,8 @@
 import "server-only";
 
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { attachDatabasePool } from "@vercel/functions";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "@/db/schema";
 
 type Database = ReturnType<typeof createDatabase>;
@@ -26,9 +27,20 @@ function createDatabase() {
       "Falta configurar DATABASE_URL (la cadena de conexión de PostgreSQL).",
     );
   }
-  // `prepare: false` keeps compatibility with transaction poolers (Neon/PgBouncer).
-  const client = postgres(url, { prepare: false, max: 1, idle_timeout: 20 });
-  return drizzle(client, { schema });
+  // Standard Postgres TCP driver (node-postgres) with a connection pool. This is
+  // the recommended setup on Vercel Fluid compute: the pool is reused across
+  // requests and stays warm, skipping the connection handshake. `sslmode=require`
+  // (present in the Neon URL) is honored by node-postgres.
+  const pool = new Pool({
+    connectionString: url,
+    max: 5,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+  });
+  // Lets Vercel close idle connections gracefully before the function suspends.
+  // A no-op outside of Vercel (e.g. local dev).
+  attachDatabasePool(pool);
+  return drizzle({ client: pool, schema });
 }
 
 function getDatabase(): Database {

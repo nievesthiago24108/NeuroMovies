@@ -39,7 +39,7 @@ commits están en **inglés**.
 | Framework     | **Next.js 16** (App Router, Turbopack, React 19)             |
 | Lenguaje      | TypeScript (`strict`)                                        |
 | Estilos       | Tailwind CSS v4                                              |
-| Base de datos | **PostgreSQL** vía `postgres` (postgres.js) + **Drizzle ORM** |
+| Base de datos | **PostgreSQL** vía `pg` (node-postgres) + **Drizzle ORM**    |
 | Migraciones   | `drizzle-kit` (versionadas en `db/migrations/`)              |
 | Fuente de datos | TMDB API v3                                                |
 | Tipografía    | Geist, auto-hospedada (`geist/font/*`)                       |
@@ -49,8 +49,9 @@ commits están en **inglés**.
 
 Dependencias del `package.json`:
 
-- **Producción:** `next`, `react`, `react-dom`, `drizzle-orm`, `postgres`,
-  `next-themes`, `geist`, `server-only`.
+- **Producción:** `next`, `react`, `react-dom`, `drizzle-orm`, `pg`,
+  `@vercel/functions`, `@neon/config`, `@neon/env`, `next-themes`, `geist`,
+  `server-only`.
 - **Desarrollo:** `drizzle-kit`, `vitest`, `vite-tsconfig-paths`, `eslint`,
   `eslint-config-next`, `tailwindcss`, `@tailwindcss/turbopack`, `typescript`,
   `@types/*`.
@@ -168,7 +169,7 @@ components/                  Componentes React
   ui/                        Primitivos (estrellas, toasts, tema, empty state)
 db/
   schema.ts                  Definición de tablas (Drizzle, pg-core)
-  index.ts                   Conexión a PostgreSQL (lazy, vía postgres.js)
+  index.ts                   Conexión a PostgreSQL (lazy, vía pg + Vercel Fluid)
   migrations/                SQL versionado
 lib/
   auth.ts                    Firma/verificación de la cookie de sesión (HMAC)
@@ -368,8 +369,12 @@ erDiagram
 ### Conexión (`db/index.ts`)
 
 - Lleva `import "server-only"`.
-- Usa **`postgres` (postgres.js)** con `prepare: false` (compatible con *poolers*
-  de transacciones como el de Neon) y `max: 1`.
+- Usa **`pg` (node-postgres)** con un *pool* TCP (`Pool`). Es el método recomendado
+  en **Vercel Fluid compute**: la conexión se establece una vez y se reutiliza
+  entre requests. El `sslmode=require` de la URL de Neon lo interpreta el driver.
+- Llama a **`attachDatabasePool`** (`@vercel/functions`) justo después de crear el
+  pool: en Vercel, cierra las conexiones ociosas antes de suspender la función.
+  Fuera de Vercel (desarrollo local) es un no-op.
 - **Se crea de forma perezosa** (un `Proxy`): importar el módulo no se conecta, así
   el build no falla si falta `DATABASE_URL`. Si se usa la base sin configurarla,
   lanza un error claro.
@@ -377,6 +382,11 @@ erDiagram
   `globalThis`).
 - Acepta `DATABASE_URL` o `POSTGRES_URL` (la que inyecta la integración de Vercel/Neon).
 - Exporta `hasDatabaseUrl()`, que usa la página de configuración.
+
+> Las **migraciones** (`npm run db:migrate`) y la **importación** usan la conexión
+> **directa** (`DATABASE_URL_UNPOOLED`) cuando está disponible, porque el *pooler*
+> de transacciones no está pensado para DDL ni para sesiones largas. La app, en
+> cambio, usa la **pooled** (`DATABASE_URL`).
 
 ---
 
@@ -737,8 +747,8 @@ npm test        # 60 tests
 - **Series con episodios faltantes:** usá **Sincronizar todo** en la biblioteca;
   reintenta lo que haya fallado.
 - **La base:** es PostgreSQL y se configura con `DATABASE_URL`. Para aplicar el
-  esquema: `npm run db:migrate`. Si migraste desde la versión SQLite:
-  `npm run db:import-sqlite`.
+  esquema: `npm run db:migrate` (usa `DATABASE_URL_UNPOOLED` si existe). Si
+  migraste desde la versión SQLite: `npm run db:import-sqlite`.
 - **"Falta configurar DATABASE_URL":** la app no puede conectarse. Definí
   `DATABASE_URL` (o `POSTGRES_URL`) en `.env` y reiniciá.
 - **Login no pedido en local:** es a propósito; se activa al definir `APP_PASSWORD`.
@@ -777,24 +787,50 @@ redirecciones ni verificación (modo desarrollo).
    `DATABASE_URL` (o `POSTGRES_URL`).
 3. Definí `TMDB_ACCESS_TOKEN`, `APP_PASSWORD` y `AUTH_SECRET` como Environment
    Variables.
-4. Aplicá migraciones contra esa base:
-   `DATABASE_URL="postgresql://...-pooler" npm run db:migrate`.
+4. Aplicá migraciones contra esa base (idealmente con la URL **directa**, sin
+   `-pooler`): `DATABASE_URL_UNPOOLED="postgresql://..." npm run db:migrate`.
 5. Deploy.
+
+La app se conecta con **`pg` (node-postgres) + pool**, y llama a
+`attachDatabasePool` de `@vercel/functions`. En Vercel Fluid compute eso mantiene
+la conexión TCP caliente y reutilizable entre requests (el método más rápido una
+vez establecida la conexión). Por eso conviene dejar la variable `DATABASE_URL`
+apuntando al endpoint **`-pooler`**.
 
 Por qué no SQLite: en Vercel el filesystem es efímero y de solo lectura; una base
 en archivo no persiste ni admite escrituras concurrentes.
+
+### 16.1 Setup con la CLI de Neon (`neon init` / `neon deploy`)
+
+Este repo se configuró con la CLI de Neon:
+
+```bash
+npm i -g neon@latest
+neon login
+neon init -y --org-id <org> --project-id <proyecto> --branch production --services postgres
+neon deploy
+```
+
+`neon init` deja:
+
+- `neon.ts` — política de ramas/servicios (se versiona).
+- `.neon` — vínculo al proyecto/rama (está en `.gitignore`).
+- Variables en `.env`: `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (directa) y
+  `NEON_BRANCH`.
+- Skills de Neon y el MCP para agentes.
 
 ---
 
 ## 17. Migrar datos desde la SQLite vieja
 
 `scripts/migrate-sqlite-to-pg.mjs` (script `npm run db:import-sqlite`) lee
-`data/app.db` con el módulo nativo `node:sqlite` y copia todo a PostgreSQL:
+`data/app.db` con el módulo nativo `node:sqlite` y copia todo a PostgreSQL. Carga
+`.env` por su cuenta y prefiere `DATABASE_URL_UNPOOLED` (conexión directa):
 
 ```bash
-DATABASE_URL="postgresql://..." npm run db:import-sqlite
+npm run db:import-sqlite
 # o, para pisar una base que ya tenga datos:
-DATABASE_URL="postgresql://..." npm run db:import-sqlite -- --force
+npm run db:import-sqlite -- --force
 ```
 
 Convierte `genres` (texto JSON → `jsonb`), los enteros de milisegundos →

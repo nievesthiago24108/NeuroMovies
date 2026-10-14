@@ -49,6 +49,8 @@ AUTH_SECRET=una-cadena-larga-y-aleatoria
   `en-US` como respaldo.
 - `DATABASE_URL` también acepta el nombre `POSTGRES_URL` que inyecta la integración
   de Neon/Vercel. Si usás el *pooler* de Neon, incluí el sufijo `-pooler`.
+- `DATABASE_URL_UNPOOLED` (la conexión **directa** de Neon, sin `-pooler`) es
+  opcional: la usan las migraciones y la importación, que no van por el pooler.
 - Si `APP_PASSWORD` queda vacío, **no se pide login** (cómodo para desarrollo). Si
   lo definís, se exige contraseña. `AUTH_SECRET` firma la cookie de sesión; si no
   lo definís, se usa `APP_PASSWORD`.
@@ -57,7 +59,7 @@ AUTH_SECRET=una-cadena-larga-y-aleatoria
 
 ```bash
 npm install         # instala dependencias
-npm run db:migrate  # aplica las migraciones a la base indicada por DATABASE_URL
+npm run db:migrate  # aplica las migraciones (usa DATABASE_URL_UNPOOLED si existe)
 npm run dev         # desarrollo en http://localhost:3000
 ```
 
@@ -72,7 +74,7 @@ Scripts disponibles:
 | `npm run typecheck`        | Verificación de tipos con TypeScript                     |
 | `npm test`                 | Tests unitarios (Vitest)                                 |
 | `npm run db:generate`      | Genera una migración nueva a partir del schema           |
-| `npm run db:migrate`       | Aplica las migraciones pendientes a `DATABASE_URL`       |
+| `npm run db:migrate`       | Aplica las migraciones pendientes (usa `DATABASE_URL_UNPOOLED`) |
 | `npm run db:import-sqlite` | Importa los datos de un `data/app.db` viejo (ver abajo)  |
 
 > El archivo `.env` (y la base SQLite vieja en `data/`) están en `.gitignore` y no
@@ -94,26 +96,45 @@ Es un login simple de un solo usuario:
 3. Creá una base PostgreSQL (por ejemplo con la integración de **Neon**) y verificá
    que quede disponible la variable `DATABASE_URL` (o `POSTGRES_URL`).
 4. Definí `TMDB_ACCESS_TOKEN`, `APP_PASSWORD` y `AUTH_SECRET` en *Environment Variables*.
-5. Aplicá las migraciones contra esa base:
+5. Aplicá las migraciones contra esa base (con la URL **directa**, sin `-pooler`):
    ```bash
-   DATABASE_URL="postgresql://...neon.tech/...-pooler" npm run db:migrate
+   DATABASE_URL_UNPOOLED="postgresql://...neon.tech/..." npm run db:migrate
    ```
 6. Deploy. Listo.
 
+La app usa **`pg` (node-postgres) + pool** y `attachDatabasePool` de
+`@vercel/functions`, el método recomendado en Vercel Fluid compute (reutiliza la
+conexión TCP entre requests). Dejá `DATABASE_URL` apuntando al endpoint `-pooler`.
+
 > SQLite no sirve en Vercel (el sistema de archivos es efímero y de solo lectura);
 > por eso el proyecto usa PostgreSQL.
+
+### Setup con la CLI de Neon
+
+Si preferís que Neon configure todo:
+
+```bash
+npm i -g neon@latest
+neon login
+neon init -y --org-id <org> --project-id <proyecto> --branch production --services postgres
+neon deploy
+```
+
+`neon init` crea `neon.ts` (se versiona), `.neon` (ignorado) y escribe
+`DATABASE_URL`, `DATABASE_URL_UNPOOLED` y `NEON_BRANCH` en `.env`.
 
 ## Migrar datos desde la SQLite vieja
 
 Si tenías datos en la versión anterior (basada en SQLite):
 
 ```bash
-DATABASE_URL="postgresql://..." npm run db:import-sqlite
+npm run db:import-sqlite
 ```
 
-Lee `data/app.db` (o `DATABASE_FILE`) y copia títulos, temporadas, episodios,
-biblioteca y progreso a PostgreSQL. Se niega a pisar una base que ya tenga títulos
-salvo que le pases `--force`.
+Lee `data/app.db` (o `DATABASE_FILE`), carga `.env` por su cuenta y copia títulos,
+temporadas, episodios, biblioteca y progreso a PostgreSQL (prefiere
+`DATABASE_URL_UNPOOLED`). Se niega a pisar una base que ya tenga títulos salvo que
+le pases `--force`.
 
 ## Notas
 

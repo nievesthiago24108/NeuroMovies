@@ -6,7 +6,7 @@ import { PosterRow } from "@/components/home/poster-row";
 import { TrendingSection } from "@/components/home/trending-section";
 import { getContinueWatching, getLibraryItems } from "@/lib/library";
 
-// Reads from a synchronous SQLite driver, so render per request.
+// Reads live data from PostgreSQL, so render per request.
 export const instant = false;
 
 function Section({
@@ -34,7 +34,7 @@ function Section({
 }
 
 export default async function Home() {
-  // Synchronous SQLite reads must run per request, not during prerendering.
+  // Database reads must run per request, not during prerendering.
   await connection();
   const [items, continueWatching] = await Promise.all([
     getLibraryItems(),

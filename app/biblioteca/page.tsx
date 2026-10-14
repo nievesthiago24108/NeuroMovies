@@ -10,11 +10,11 @@ export const metadata: Metadata = {
   title: "Biblioteca",
 };
 
-// Reads from a synchronous SQLite driver, so render per request.
+// Reads live data from PostgreSQL, so render per request.
 export const instant = false;
 
 export default async function LibraryPage() {
-  // Synchronous SQLite reads must run per request, not during prerendering.
+  // Database reads must run per request, not during prerendering.
   await connection();
   const items = await getLibraryItems();
   const seriesCount = await countTvTitles();
