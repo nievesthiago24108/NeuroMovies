@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { posterUrl } from "@/lib/tmdb/images";
+import { buildPageList, clampPage, pageCount } from "@/lib/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   LIBRARY_SORT_LABEL,
@@ -29,6 +30,70 @@ const STATUS_OPTIONS: Array<{ value: LibraryStatusFilter; label: string }> = [
 ];
 
 const MIN_RATING_OPTIONS = [null, 1, 2, 3, 4, 5] as const;
+
+/** How many titles fit on one page before a new page is created. */
+const PAGE_SIZE = 24;
+
+const PAGER_BUTTON_CLASS =
+  "inline-flex h-9 min-w-9 items-center justify-center rounded-control border border-line px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-40";
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <nav
+      aria-label="Paginación de la biblioteca"
+      className="flex flex-wrap items-center justify-center gap-1.5 pt-1"
+    >
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`${PAGER_BUTTON_CLASS} text-muted hover:bg-surface-2 hover:text-foreground`}
+      >
+        ← Anterior
+      </button>
+
+      {buildPageList(currentPage, totalPages).map((entry, index) =>
+        entry === "gap" ? (
+          <span key={`gap-${index}`} aria-hidden="true" className="px-1 text-muted">
+            …
+          </span>
+        ) : (
+          <button
+            key={entry}
+            type="button"
+            onClick={() => onPageChange(entry)}
+            aria-label={`Ir a la página ${entry}`}
+            aria-current={entry === currentPage ? "page" : undefined}
+            className={`${PAGER_BUTTON_CLASS} ${
+              entry === currentPage
+                ? "border-accent bg-accent text-accent-ink"
+                : "text-muted hover:bg-surface-2 hover:text-foreground"
+            }`}
+          >
+            {entry}
+          </button>
+        ),
+      )}
+
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`${PAGER_BUTTON_CLASS} text-muted hover:bg-surface-2 hover:text-foreground`}
+      >
+        Siguiente →
+      </button>
+    </nav>
+  );
+}
 
 function StarGlyph() {
   return (
@@ -151,6 +216,33 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
     return [...list].sort((a, b) => compareItems(a, b, sort));
   }, [items, media, status, minRating, query, sort]);
 
+  const totalPages = pageCount(filtered.length, PAGE_SIZE);
+  const [page, setPage] = useState(1);
+  const currentPage = clampPage(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const visibleItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const resultsRef = useRef<HTMLParagraphElement>(null);
+
+  // Every filter/sort/search change goes back to the first page.
+  function resetToFirstPage() {
+    setPage(1);
+  }
+
+  function goToPage(next: number) {
+    const target = clampPage(next, totalPages);
+    if (target === currentPage) return;
+    setPage(target);
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    resultsRef.current?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+
+  const rangeFrom = filtered.length === 0 ? 0 : pageStart + 1;
+  const rangeTo = pageStart + visibleItems.length;
+
   const fieldClass =
     "h-9 rounded-control border border-line bg-surface px-2 text-sm text-foreground";
 
@@ -168,7 +260,10 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
                 key={option.value}
                 type="button"
                 aria-pressed={media === option.value}
-                onClick={() => setMedia(option.value)}
+                onClick={() => {
+                  setMedia(option.value);
+                  resetToFirstPage();
+                }}
                 className={`rounded-[4px] px-3 py-1 text-sm font-medium transition-colors ${
                   media === option.value
                     ? "bg-accent text-accent-ink"
@@ -183,7 +278,10 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              resetToFirstPage();
+            }}
             placeholder="Buscar en mi biblioteca"
             aria-label="Buscar en mi biblioteca"
             className="h-9 min-w-[12rem] flex-1 rounded-control border border-line bg-surface px-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
@@ -195,7 +293,10 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
             Estado
             <select
               value={status}
-              onChange={(event) => setStatus(event.target.value as LibraryStatusFilter)}
+              onChange={(event) => {
+                setStatus(event.target.value as LibraryStatusFilter);
+                resetToFirstPage();
+              }}
               className={fieldClass}
             >
               {STATUS_OPTIONS.map((option) => (
@@ -210,9 +311,10 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
             Puntuación
             <select
               value={minRating ?? ""}
-              onChange={(event) =>
-                setMinRating(event.target.value === "" ? null : Number(event.target.value))
-              }
+              onChange={(event) => {
+                setMinRating(event.target.value === "" ? null : Number(event.target.value));
+                resetToFirstPage();
+              }}
               className={fieldClass}
             >
               {MIN_RATING_OPTIONS.map((value) => (
@@ -227,7 +329,10 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
             Ordenar por
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as LibrarySort)}
+              onChange={(event) => {
+                setSort(event.target.value as LibrarySort);
+                resetToFirstPage();
+              }}
               className={fieldClass}
             >
               {Object.entries(LIBRARY_SORT_LABEL).map(([value, label]) => (
@@ -240,8 +345,12 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
         </div>
       </div>
 
-      <p className="text-xs text-muted">
-        {filtered.length} de {items.length} títulos
+      <p ref={resultsRef} className="scroll-mt-20 text-xs text-muted">
+        {filtered.length === 0
+          ? "Sin resultados"
+          : `Mostrando ${rangeFrom}–${rangeTo} de ${filtered.length} ${
+              filtered.length === 1 ? "título" : "títulos"
+            }${filtered.length !== items.length ? ` · ${items.length} en la biblioteca` : ""}`}
       </p>
 
       {filtered.length === 0 ? (
@@ -250,11 +359,21 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
           description="Probá cambiar los filtros o la búsqueda."
         />
       ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {filtered.map((item) => (
-            <LibraryCard key={item.titleId} item={item} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {visibleItems.map((item) => (
+              <LibraryCard key={item.titleId} item={item} />
+            ))}
+          </div>
+
+          {totalPages > 1 ? (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+            />
+          ) : null}
+        </>
       )}
     </div>
   );
