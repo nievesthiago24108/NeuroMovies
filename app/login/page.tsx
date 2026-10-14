@@ -20,7 +20,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6 py-10">
       <header className="flex flex-col gap-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Mi Catálogo</h1>
+        <h1 className="text-2xl font-bold tracking-tight">NeuroMovies</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Ingresá la contraseña para continuar.
         </p>

@@ -1,4 +1,4 @@
-# Mi Catálogo — Documentación
+# NeuroMovies — Documentación
 
 Aplicación web personal para llevar el seguimiento de **películas y series**:
 qué estás viendo, qué querés ver y qué ya viste, con puntuación de **1 a 5

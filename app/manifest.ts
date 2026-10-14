@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Mi Catálogo",
-    short_name: "Mi Catálogo",
+    name: "NeuroMovies",
+    short_name: "NeuroMovies",
     description: "Seguimiento personal de películas y series, con datos de TMDB.",
     start_url: "/",
     display: "standalone",

@@ -1,4 +1,4 @@
-# Mi Catálogo
+# NeuroMovies
 
 Aplicación web personal de seguimiento de películas y series: lo que estás viendo,
 lo que querés ver y lo que ya viste, con puntuación de 1 a 5 estrellas por película

@@ -9,8 +9,8 @@ import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "Mi Catálogo",
-    template: "%s · Mi Catálogo",
+    default: "NeuroMovies",
+    template: "%s · NeuroMovies",
   },
   description: "Seguimiento personal de películas y series, con datos de TMDB.",
 };

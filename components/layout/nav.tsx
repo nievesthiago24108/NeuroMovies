@@ -17,7 +17,7 @@ export function Nav() {
           href="/"
           className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50"
         >
-          Mi Catálogo
+          NeuroMovies
         </Link>
         <ul className="ml-2 flex items-center gap-1 sm:ml-4">
           {links.map((link) => (

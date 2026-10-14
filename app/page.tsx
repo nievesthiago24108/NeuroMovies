@@ -50,7 +50,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">Mi Catálogo</h1>
+        <h1 className="text-2xl font-bold tracking-tight">NeuroMovies</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Tu seguimiento personal de películas y series.
         </p>

@@ -44,11 +44,11 @@ function createDatabase() {
 }
 
 function getDatabase(): Database {
-  const globalForDb = globalThis as unknown as { __miCatalogoDb?: Database };
-  if (!globalForDb.__miCatalogoDb) {
-    globalForDb.__miCatalogoDb = createDatabase();
+  const globalForDb = globalThis as unknown as { __neuroMoviesDb?: Database };
+  if (!globalForDb.__neuroMoviesDb) {
+    globalForDb.__neuroMoviesDb = createDatabase();
   }
-  return globalForDb.__miCatalogoDb;
+  return globalForDb.__neuroMoviesDb;
 }
 
 /**
