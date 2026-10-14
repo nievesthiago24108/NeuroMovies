@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LibraryGrid } from "@/components/library/library-grid";
 import { SyncAllButton } from "@/components/library/sync-all-button";
+import { WishlistRoulette } from "@/components/library/wishlist-roulette";
 import { countTvTitles, getLibraryItems } from "@/lib/library";
 
 export const metadata: Metadata = {
@@ -17,6 +18,9 @@ export default async function LibraryPage() {
   await connection();
   const items = await getLibraryItems();
   const seriesCount = await countTvTitles();
+  const wishlistMovies = items.filter(
+    (item) => item.mediaType === "movie" && item.status === "wishlist",
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,6 +33,8 @@ export default async function LibraryPage() {
         </div>
         {seriesCount > 0 ? <SyncAllButton /> : null}
       </header>
+
+      {wishlistMovies.length > 0 ? <WishlistRoulette items={wishlistMovies} /> : null}
 
       {items.length === 0 ? (
         <EmptyState
