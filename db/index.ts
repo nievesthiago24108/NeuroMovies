@@ -1,42 +1,53 @@
 import "server-only";
 
-import { mkdirSync } from "node:fs";
-import path from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "@/db/schema";
 
-const DATABASE_FILE = process.env.DATABASE_FILE ?? "data/app.db";
+type Database = ReturnType<typeof createDatabase>;
+
+/**
+ * Accepts both the generic name (`DATABASE_URL`) and the one injected by the
+ * Vercel/Neon integration (`POSTGRES_URL`).
+ */
+function resolveUrl(): string | undefined {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
+}
+
+/** Whether a PostgreSQL connection string is configured. */
+export function hasDatabaseUrl(): boolean {
+  return Boolean(resolveUrl());
+}
 
 function createDatabase() {
-  // Avoid tracing the whole cwd in production build analysis
-  const cwd = process.cwd();
-  const resolvedPath = path.isAbsolute(DATABASE_FILE)
-    ? DATABASE_FILE
-    : path.join(/*turbopackIgnore: true*/ cwd, DATABASE_FILE);
-  const dir = path.dirname(resolvedPath);
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      mkdirSync(dir, { recursive: true });
-    } catch {
-      // ignore
-    }
+  const url = resolveUrl();
+  if (!url) {
+    throw new Error(
+      "Falta configurar DATABASE_URL (la cadena de conexión de PostgreSQL).",
+    );
   }
-
-  const sqlite = new Database(resolvedPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-
-  return drizzle(sqlite, { schema });
+  // `prepare: false` keeps compatibility with transaction poolers (Neon/PgBouncer).
+  const client = postgres(url, { prepare: false, max: 1, idle_timeout: 20 });
+  return drizzle(client, { schema });
 }
 
-// Keep a single connection across hot reloads in development.
-const globalForDb = globalThis as unknown as { __miCatalogoDb?: ReturnType<typeof createDatabase> };
-
-export const db = globalForDb.__miCatalogoDb ?? createDatabase();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__miCatalogoDb = db;
+function getDatabase(): Database {
+  const globalForDb = globalThis as unknown as { __miCatalogoDb?: Database };
+  if (!globalForDb.__miCatalogoDb) {
+    globalForDb.__miCatalogoDb = createDatabase();
+  }
+  return globalForDb.__miCatalogoDb;
 }
 
-export type DB = typeof db;
+/**
+ * Lazily created Drizzle client. Created on first access so importing this
+ * module (e.g. during `next build`) never throws when the connection string is
+ * missing; the error only surfaces when the database is actually used.
+ */
+export const db = new Proxy({} as Database, {
+  get(_target, property, receiver) {
+    return Reflect.get(getDatabase() as object, property, receiver);
+  },
+});
+
+export type DB = Database;

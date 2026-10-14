@@ -21,8 +21,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // Avoid bundling server code that touches filesystem at build time
-  serverExternalPackages: ["better-sqlite3", "drizzle-orm"],
+  // Keep the database layer out of the bundle; it runs on the Node.js server.
+  serverExternalPackages: ["postgres", "drizzle-orm"],
 };
 
 export default nextConfig;

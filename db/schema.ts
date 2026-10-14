@@ -1,12 +1,16 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
-  sqliteTable,
+  jsonb,
+  pgTable,
+  serial,
   text,
+  timestamp,
   uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
 
 /** Media type of a title (movie or TV series). */
 export const MEDIA_TYPES = ["movie", "tv"] as const;
@@ -24,10 +28,10 @@ export const MAX_RATING = 5;
 // titles
 // ---------------------------------------------------------------------------
 
-export const titles = sqliteTable(
+export const titles = pgTable(
   "titles",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     tmdbId: integer("tmdb_id").notNull(),
     mediaType: text("media_type", { enum: MEDIA_TYPES }).notNull(),
     title: text("title").notNull(),
@@ -40,13 +44,13 @@ export const titles = sqliteTable(
     /** First air date for TV series (YYYY-MM-DD). */
     firstAirDate: text("first_air_date"),
     /** Array of { id, name } genre objects, stored as JSON. */
-    genres: text("genres", { mode: "json" }).$type<{ id: number; name: string }[]>(),
+    genres: jsonb("genres").$type<{ id: number; name: string }[]>(),
     /** Runtime in minutes (movie) or average episode runtime (TV, from TMDB). */
     runtime: integer("runtime"),
     /** TMDB status, e.g. "Released", "Returning Series", "Ended". */
     tmdbStatus: text("tmdb_status"),
     numberOfSeasons: integer("number_of_seasons"),
-    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: "date" }),
   },
   (t) => [
     uniqueIndex("titles_tmdb_type_unique").on(t.tmdbId, t.mediaType),
@@ -58,10 +62,10 @@ export const titles = sqliteTable(
 // seasons
 // ---------------------------------------------------------------------------
 
-export const seasons = sqliteTable(
+export const seasons = pgTable(
   "seasons",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     titleId: integer("title_id")
       .notNull()
       .references(() => titles.id, { onDelete: "cascade" }),
@@ -78,10 +82,10 @@ export const seasons = sqliteTable(
 // episodes
 // ---------------------------------------------------------------------------
 
-export const episodes = sqliteTable(
+export const episodes = pgTable(
   "episodes",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     titleId: integer("title_id")
       .notNull()
       .references(() => titles.id, { onDelete: "cascade" }),
@@ -113,7 +117,7 @@ export const episodes = sqliteTable(
 // library_entries
 // ---------------------------------------------------------------------------
 
-export const libraryEntries = sqliteTable(
+export const libraryEntries = pgTable(
   "library_entries",
   {
     titleId: integer("title_id")
@@ -122,8 +126,8 @@ export const libraryEntries = sqliteTable(
     status: text("status", { enum: LIBRARY_STATUSES }).notNull().default("wishlist"),
     /** 1–5 stars. Only meaningful for movies. NULL clears the rating. */
     rating: integer("rating"),
-    watchedAt: integer("watched_at", { mode: "timestamp_ms" }),
-    addedAt: integer("added_at", { mode: "timestamp_ms" }).notNull(),
+    watchedAt: timestamp("watched_at", { withTimezone: true, mode: "date" }),
+    addedAt: timestamp("added_at", { withTimezone: true, mode: "date" }).notNull(),
     notes: text("notes"),
   },
   (t) => [
@@ -139,14 +143,14 @@ export const libraryEntries = sqliteTable(
 // episode_progress
 // ---------------------------------------------------------------------------
 
-export const episodeProgress = sqliteTable(
+export const episodeProgress = pgTable(
   "episode_progress",
   {
     episodeId: integer("episode_id")
       .primaryKey()
       .references(() => episodes.id, { onDelete: "cascade" }),
-    watched: integer("watched", { mode: "boolean" }).notNull().default(false),
-    watchedAt: integer("watched_at", { mode: "timestamp_ms" }),
+    watched: boolean("watched").notNull().default(false),
+    watchedAt: timestamp("watched_at", { withTimezone: true, mode: "date" }),
     rating: integer("rating"),
   },
   (t) => [

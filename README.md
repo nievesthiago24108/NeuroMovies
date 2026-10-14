@@ -5,14 +5,16 @@ lo que querés ver y lo que ya viste, con puntuación de 1 a 5 estrellas por pel
 y por episodio. El catálogo se obtiene automáticamente de la [TMDB API](https://developer.themoviedb.org/docs).
 
 - **Stack**: Next.js (App Router) + TypeScript + Tailwind CSS
-- **Base de datos**: SQLite con Drizzle ORM (better-sqlite3) y migraciones versionadas
-- **Uso**: local, un solo usuario, sin login
+- **Base de datos**: PostgreSQL con Drizzle ORM y migraciones versionadas
+- **Despliegue**: Vercel (por ejemplo, con PostgreSQL de Neon)
+- **Uso**: personal, un solo usuario, con inicio de sesión por contraseña
 - **Idioma de la interfaz**: español
 
 ## Requisitos
 
 - Node.js >= 20.9 (probado con Node 24)
 - Un token de API de TMDB (gratis)
+- Una base de datos PostgreSQL (local o en Neon / Vercel)
 
 ## Obtener el token de TMDB
 
@@ -27,40 +29,91 @@ y por episodio. El catálogo se obtiene automáticamente de la [TMDB API](https:
 cp .env.example .env
 ```
 
-Editá `.env` y pegá tu token:
+Editá `.env`:
 
 ```env
+# TMDB
 TMDB_ACCESS_TOKEN=eyJhbGciOi...
 TMDB_LANGUAGE=es-MX
+
+# PostgreSQL (obligatorio)
+DATABASE_URL=postgresql://usuario:clave@host:5432/base
+
+# Inicio de sesión (opcional en local, recomendado en la web)
+APP_PASSWORD=tu-contraseña
+AUTH_SECRET=una-cadena-larga-y-aleatoria
 ```
 
-`TMDB_LANGUAGE` admite locales de TMDB como `es-MX`, `es-AR`, `es-ES` o `en-US`
-(por defecto `es-MX`). Si un título o sinopsis viene vacío en ese idioma, se usará
-`en-US` como respaldo.
+- `TMDB_LANGUAGE` admite locales de TMDB como `es-MX`, `es-AR`, `es-ES` o `en-US`
+  (por defecto `es-MX`). Si un título o sinopsis viene vacío en ese idioma, se usará
+  `en-US` como respaldo.
+- `DATABASE_URL` también acepta el nombre `POSTGRES_URL` que inyecta la integración
+  de Neon/Vercel. Si usás el *pooler* de Neon, incluí el sufijo `-pooler`.
+- Si `APP_PASSWORD` queda vacío, **no se pide login** (cómodo para desarrollo). Si
+  lo definís, se exige contraseña. `AUTH_SECRET` firma la cookie de sesión; si no
+  lo definís, se usa `APP_PASSWORD`.
 
 ## Instalación y ejecución
 
 ```bash
-npm install        # instala dependencias
-npm run db:migrate # crea y migra la base de datos (data/app.db)
-npm run dev        # desarrollo en http://localhost:3000
+npm install         # instala dependencias
+npm run db:migrate  # aplica las migraciones a la base indicada por DATABASE_URL
+npm run dev         # desarrollo en http://localhost:3000
 ```
 
 Scripts disponibles:
 
-| Script               | Descripción                                             |
-| -------------------- | ------------------------------------------------------- |
-| `npm run dev`        | Servidor de desarrollo                                  |
-| `npm run build`      | Build de producción                                     |
-| `npm run start`      | Sirve el build de producción                            |
-| `npm run lint`       | ESLint                                                  |
-| `npm run typecheck`  | Verificación de tipos con TypeScript                    |
-| `npm test`           | Tests unitarios (Vitest)                                |
-| `npm run db:generate`| Genera una migración nueva a partir del schema          |
-| `npm run db:migrate` | Aplica las migraciones pendientes a `data/app.db`       |
+| Script                     | Descripción                                              |
+| -------------------------- | -------------------------------------------------------- |
+| `npm run dev`              | Servidor de desarrollo                                   |
+| `npm run build`            | Build de producción                                      |
+| `npm run start`            | Sirve el build de producción                             |
+| `npm run lint`             | ESLint                                                   |
+| `npm run typecheck`        | Verificación de tipos con TypeScript                     |
+| `npm test`                 | Tests unitarios (Vitest)                                 |
+| `npm run db:generate`      | Genera una migración nueva a partir del schema           |
+| `npm run db:migrate`       | Aplica las migraciones pendientes a `DATABASE_URL`       |
+| `npm run db:import-sqlite` | Importa los datos de un `data/app.db` viejo (ver abajo)  |
 
-> La base de datos local (`data/`) y el archivo `.env` están en `.gitignore` y no
+> El archivo `.env` (y la base SQLite vieja en `data/`) están en `.gitignore` y no
 > se suben al repositorio.
+
+## Inicio de sesión
+
+Es un login simple de un solo usuario:
+
+- Se define `APP_PASSWORD` en el entorno.
+- Al entrar, se guarda una **cookie firmada** (HMAC-SHA256, `httpOnly`).
+- Un `proxy.ts` (el ex `middleware`) redirige a `/login` a quien no tenga sesión, y
+  cada Server Action vuelve a verificar la sesión antes de escribir.
+
+## Despliegue en Vercel
+
+1. Subí el repositorio a GitHub.
+2. Importá el proyecto en Vercel.
+3. Creá una base PostgreSQL (por ejemplo con la integración de **Neon**) y verificá
+   que quede disponible la variable `DATABASE_URL` (o `POSTGRES_URL`).
+4. Definí `TMDB_ACCESS_TOKEN`, `APP_PASSWORD` y `AUTH_SECRET` en *Environment Variables*.
+5. Aplicá las migraciones contra esa base:
+   ```bash
+   DATABASE_URL="postgresql://...neon.tech/...-pooler" npm run db:migrate
+   ```
+6. Deploy. Listo.
+
+> SQLite no sirve en Vercel (el sistema de archivos es efímero y de solo lectura);
+> por eso el proyecto usa PostgreSQL.
+
+## Migrar datos desde la SQLite vieja
+
+Si tenías datos en la versión anterior (basada en SQLite):
+
+```bash
+DATABASE_URL="postgresql://..." npm run db:import-sqlite
+```
+
+Lee `data/app.db` (o `DATABASE_FILE`) y copia títulos, temporadas, episodios,
+biblioteca y progreso a PostgreSQL. Se niega a pisar una base que ya tenga títulos
+salvo que le pases `--force`.
 
 ## Notas
 

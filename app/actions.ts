@@ -9,11 +9,15 @@ import type { LibraryStatus, MediaType } from "@/db/schema";
 import { ensureTitle, syncAllLibrarySeries } from "@/lib/library";
 import { isReturningSeries } from "@/lib/progress";
 import { hasTmdbToken } from "@/lib/tmdb/client";
+import { isAuthenticated } from "@/lib/session";
+
+const UNAUTHORIZED = { ok: false as const, error: "No autorizado." };
 
 export async function setMovieRating(
   titleId: number,
   ratingValue: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const rating = parseRating(ratingValue);
   const title = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
   if (!title || title.mediaType !== "movie") {
@@ -35,6 +39,7 @@ export async function updateLibraryStatus(
   titleId: number,
   status: LibraryStatus,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const existing = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
   if (!existing) return { ok: false, error: "Título no encontrado." };
   const now = new Date();
@@ -53,6 +58,7 @@ export async function updateLibraryNotes(
   titleId: number,
   notes: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const existing = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
   if (!existing) return { ok: false, error: "Título no encontrado." };
   await db
@@ -68,6 +74,7 @@ export async function setMovieWatchedAt(
   titleId: number,
   watchedAt: Date | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const title = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
   if (!title || title.mediaType !== "movie") return { ok: false, error: "Película no encontrada." };
   await db
@@ -84,6 +91,7 @@ export async function addToLibrary(
   status: "wishlist" | "watching",
 ): Promise<{ ok: true; titleId: number } | { ok: false; error: string }> {
   try {
+    if (!(await isAuthenticated())) return UNAUTHORIZED;
     const title = await ensureTitle(tmdbId, mediaType);
     const now = new Date();
     await db
@@ -116,6 +124,7 @@ export type SyncAllSeriesResponse =
  * Used by the explicit "Sincronizar todo" button.
  */
 export async function syncAllSeries(): Promise<SyncAllSeriesResponse> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   if (!hasTmdbToken()) {
     return { ok: false, error: "Falta configurar TMDB_ACCESS_TOKEN." };
   }
@@ -237,6 +246,7 @@ export async function setEpisodeProgress(
   episodeId: number,
   patch: { watched?: boolean; rating?: number | null },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const episode = await db.query.episodes.findFirst({ where: eq(episodes.id, episodeId) });
   if (!episode) return { ok: false, error: "Episodio no encontrado." };
 
@@ -284,6 +294,7 @@ export async function setSeasonWatched(
   seasonNumber: number,
   watched: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const title = await db.query.titles.findFirst({ where: eq(titles.id, titleId) });
   if (!title) return { ok: false, error: "Serie no encontrada." };
 
@@ -325,6 +336,7 @@ export async function setSeasonWatched(
 export async function markUpToEpisodeWatched(
   episodeId: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAuthenticated())) return UNAUTHORIZED;
   const target = await db.query.episodes.findFirst({ where: eq(episodes.id, episodeId) });
   if (!target) return { ok: false, error: "Episodio no encontrado." };
   if (!isAiredDate(target.airDate)) {

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LogoutButton } from "@/components/layout/logout-button";
+import { isAuthEnabled } from "@/lib/auth";
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -29,7 +31,8 @@ export function Nav() {
             </li>
           ))}
         </ul>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          {isAuthEnabled() ? <LogoutButton /> : null}
           <ThemeToggle />
         </div>
       </nav>
